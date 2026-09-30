@@ -1,0 +1,223 @@
+// Sistema de Desfile de Santos — modelo de dados do MVP
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum StatusEvento {
+  ATIVO
+  ENCERRADO
+}
+
+enum DesempateIdade {
+  MAIS_VELHO
+  MAIS_NOVO
+}
+
+enum StatusCategoria {
+  AGUARDANDO
+  EM_ANDAMENTO
+  FECHADA
+  REVELADA
+}
+
+enum Funcao {
+  CADASTRO
+  FILA
+  LOCUTOR
+  JURADO
+}
+
+enum StatusParticipante {
+  AGUARDANDO
+  PRESENTE
+  AUSENTE
+  DESFILOU
+}
+
+model Organizador {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  criadoEm  DateTime @default(now())
+
+  eventos Evento[]
+  sessoes SessaoOrganizador[]
+}
+
+model SessaoOrganizador {
+  id            String      @id @default(cuid())
+  token         String      @unique
+  organizadorId String
+  organizador   Organizador @relation(fields: [organizadorId], references: [id], onDelete: Cascade)
+  expiraEm      DateTime
+  criadoEm      DateTime    @default(now())
+}
+
+model Evento {
+  id                 String         @id @default(cuid())
+  organizadorId      String
+  organizador        Organizador    @relation(fields: [organizadorId], references: [id])
+  nome               String
+  data               DateTime
+  local              String         @default("")
+  slugPublico        String         @unique
+  desempateIdade     DesempateIdade @default(MAIS_VELHO)
+  exibirPrimeiroNome Boolean        @default(false)
+  status             StatusEvento   @default(ATIVO)
+  criadoEm           DateTime       @default(now())
+
+  categorias    Categoria[]
+  quesitos      Quesito[]
+  jurados       Jurado[]
+  acessos       Acesso[]
+  participantes Participante[]
+  estado        EstadoDesfile?
+  ocorrencias   Ocorrencia[]
+}
+
+model Categoria {
+  id         String          @id @default(cuid())
+  eventoId   String
+  evento     Evento          @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  nome       String
+  idadeMin   Int
+  idadeMax   Int
+  ordem      Int
+  status     StatusCategoria @default(AGUARDANDO)
+  fechadaEm  DateTime?
+  reveladaEm DateTime?
+
+  participantes Participante[]
+  resultados    Resultado[]
+
+  @@index([eventoId, ordem])
+}
+
+model Quesito {
+  id       String @id @default(cuid())
+  eventoId String
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  nome     String
+  ordem    Int
+
+  notas Nota[]
+
+  @@index([eventoId, ordem])
+}
+
+model Jurado {
+  id       String  @id @default(cuid())
+  eventoId String
+  evento   Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  numero   Int
+  nome     String?
+
+  acesso Acesso?
+  notas  Nota[]
+
+  @@unique([eventoId, numero])
+}
+
+// Um acesso por função (Cadastro, Fila, Locutor) e um por jurado.
+// Regenerar o QR troca o token, o que invalida o anterior.
+model Acesso {
+  id       String  @id @default(cuid())
+  eventoId String
+  evento   Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  funcao   Funcao
+  juradoId String? @unique
+  jurado   Jurado? @relation(fields: [juradoId], references: [id], onDelete: Cascade)
+  token    String  @unique
+  ativo    Boolean @default(true)
+
+  sessoes Sessao[]
+
+  @@index([eventoId, funcao])
+}
+
+model Sessao {
+  id           String   @id @default(cuid())
+  acessoId     String
+  acesso       Acesso   @relation(fields: [acessoId], references: [id], onDelete: Cascade)
+  nomePessoa   String
+  ultimoAcesso DateTime @default(now())
+  criadoEm     DateTime @default(now())
+
+  @@index([acessoId, ultimoAcesso])
+}
+
+model Participante {
+  id          String             @id @default(cuid())
+  eventoId    String
+  evento      Evento             @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  categoriaId String
+  categoria   Categoria          @relation(fields: [categoriaId], references: [id])
+  numero      Int
+  nome        String
+  idade       Int
+  santo       String
+  status      StatusParticipante @default(AGUARDANDO)
+  posicaoFila Int
+  desfilouEm  DateTime?
+  criadoEm    DateTime           @default(now())
+
+  notas      Nota[]
+  resultados Resultado[]
+
+  @@unique([eventoId, numero])
+  @@index([categoriaId, posicaoFila])
+}
+
+model Nota {
+  id             String       @id @default(cuid())
+  participanteId String
+  participante   Participante @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+  juradoId       String
+  jurado         Jurado       @relation(fields: [juradoId], references: [id], onDelete: Cascade)
+  quesitoId      String
+  quesito        Quesito      @relation(fields: [quesitoId], references: [id], onDelete: Cascade)
+  valor          Int
+  confirmadaEm   DateTime     @default(now())
+
+  @@unique([participanteId, juradoId, quesitoId])
+}
+
+model EstadoDesfile {
+  eventoId            String   @id
+  evento              Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  categoriaAtualId    String?
+  participanteAtualId String?
+  atualizadoEm        DateTime @updatedAt
+}
+
+model Resultado {
+  id                String       @id @default(cuid())
+  categoriaId       String
+  categoria         Categoria    @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  participanteId    String
+  participante      Participante @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+  posicao           Int
+  media             Float
+  // Critério que colocou este participante à frente do seguinte, quando empatados na média.
+  criterioDesempate String?
+  sorteioEm         DateTime?
+
+  @@unique([categoriaId, posicao])
+}
+
+// Registro de ações excepcionais (ex.: liberação manual da fila sem todas as notas).
+model Ocorrencia {
+  id        String   @id @default(cuid())
+  eventoId  String
+  evento    Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  tipo      String
+  descricao String   @db.Text
+  criadoEm  DateTime @default(now())
+}

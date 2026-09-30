@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-marca-50: #f5f3ff;
+  --color-marca-100: #ede9fe;
+  --color-marca-500: #7c3aed;
+  --color-marca-600: #6d28d9;
+  --color-marca-700: #5b21b6;
+  --color-marca-900: #2e1065;
+  --color-ouro: #f5b301;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #f8f7fb;
+  color: #18181b;
+}
