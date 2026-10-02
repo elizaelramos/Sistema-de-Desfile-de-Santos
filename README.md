@@ -12,7 +12,7 @@ avaliação dos jurados, apuração automática e telão público. Escopo comple
 npm install
 cp .env.example .env            # ajuste DATABASE_URL
 npm run db:migrate              # cria as tabelas
-npm run organizador -- "Seu Nome" voce@exemplo.com uma-senha-forte
+npm run organizador -- "Seu Nome" voce@exemplo.com uma-senha-forte --super
 npm run ensaio -- voce@exemplo.com   # opcional: evento de ensaio com 30 participantes
 npm run dev
 ```
@@ -29,8 +29,9 @@ GRANT ALL ON desfile.* TO 'desfile'@'localhost';
 
 | Rota | Quem usa |
 |---|---|
-| `/login`, `/painel` | Organizador (e-mail + senha) |
-| `/a/<token>` | Cadastro, Fila, Locutor e cada Jurado — link do QR Code + nome |
+| `/login`, `/painel` | Coordenador (e-mail + senha) — cria e gerencia os próprios desfiles |
+| `/painel/usuarios` | Super admin — cria, edita e desativa coordenadores e outros super admins |
+| `/a/<token>` | Cada Cadastrador, Fila, Locutor e cada Jurado — link do QR Code + nome |
 | `/p/<slug>` | Telão / público (sem login) |
 
 - **Painel do evento** — abas *Andamento* (abrir/fechar/revelar categorias, jurados pendentes, liberação manual),

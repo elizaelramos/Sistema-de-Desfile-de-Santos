@@ -37,8 +37,6 @@ export function TelaCadastro(props: PropsFuncao) {
       api<Participante[]>(`/api/r/${token}/participantes?q=${encodeURIComponent(busca)}`),
   });
 
-  // Sugere o próximo número enquanto o campo não foi preenchido à mão.
-  const numero = form.numero || (editando ? "" : String(estado?.proximoNumero ?? ""));
   const idade = Number(form.idade);
   const categoria =
     form.idade !== ""
@@ -66,7 +64,7 @@ export function TelaCadastro(props: PropsFuncao) {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    const corpo = { numero: Number(numero), nome: form.nome, idade: Number(form.idade), santo: form.santo };
+    const corpo = { numero: Number(form.numero), nome: form.nome, idade: Number(form.idade), santo: form.santo };
     const ok = await executar(async () => {
       const p = editando
         ? await api<Participante>(`/api/r/${token}/participantes/${editando.id}`, { method: "PATCH", body: corpo })
@@ -91,9 +89,11 @@ export function TelaCadastro(props: PropsFuncao) {
               type="number"
               inputMode="numeric"
               min={1}
-              value={numero}
+              placeholder="Nº que está na mão"
+              value={form.numero}
               onChange={(e) => alterar("numero", e.target.value)}
               required
+              autoFocus
             />
             <Campo
               rotulo="Idade"

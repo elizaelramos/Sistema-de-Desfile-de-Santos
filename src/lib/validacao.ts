@@ -8,6 +8,23 @@ export const esquemaLogin = z.object({
   senha: z.string().min(1, "Informe a senha"),
 });
 
+const senha = z.string().min(8, "A senha precisa ter pelo menos 8 caracteres").max(200);
+const papel = z.enum(["SUPER_ADMIN", "ORGANIZADOR"]);
+
+export const esquemaNovoOrganizador = z.object({
+  nome: texto("o nome", 120),
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  senha,
+  papel,
+});
+
+export const esquemaEdicaoOrganizador = z.object({
+  nome: texto("o nome", 120).optional(),
+  papel: papel.optional(),
+  ativo: z.boolean().optional(),
+  senha: senha.optional(),
+});
+
 export const esquemaNovoEvento = z.object({
   nome: texto("o nome do evento"),
   data: z.coerce.date({ error: "Data inválida" }),
@@ -18,6 +35,11 @@ export const esquemaEvento = esquemaNovoEvento.extend({
   desempateIdade: z.enum(["MAIS_VELHO", "MAIS_NOVO"]),
   exibirPrimeiroNome: z.boolean(),
   jurados: z.number().int().min(1, "Pelo menos 1 jurado").max(20, "No máximo 20 jurados"),
+  cadastradores: z
+    .number()
+    .int()
+    .min(1, "Pelo menos 1 cadastrador")
+    .max(20, "No máximo 20 cadastradores"),
 });
 
 export const esquemaCategorias = z.object({

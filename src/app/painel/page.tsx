@@ -5,5 +5,5 @@ import { ListaEventos } from "@/components/organizador/lista-eventos";
 export default async function Painel() {
   const org = await organizadorAtual();
   if (!org) redirect("/login");
-  return <ListaEventos nomeOrganizador={org.nome} />;
+  return <ListaEventos nomeOrganizador={org.nome} superAdmin={org.papel === "SUPER_ADMIN"} />;
 }

@@ -11,10 +11,11 @@ export const GET = rota(async (_req: Request, ctx: RouteContext<"/api/org/evento
   const { id } = await ctx.params;
   const evento = await exigirEventoDoOrganizador(id);
 
-  const [categorias, quesitos, jurados, contagens, ao, ocorrencias] = await Promise.all([
+  const [categorias, quesitos, jurados, cadastradores, contagens, ao, ocorrencias] = await Promise.all([
     db.categoria.findMany({ where: { eventoId: id }, orderBy: { ordem: "asc" } }),
     db.quesito.findMany({ where: { eventoId: id }, orderBy: { ordem: "asc" } }),
     db.jurado.findMany({ where: { eventoId: id }, orderBy: { numero: "asc" } }),
+    db.acesso.count({ where: { eventoId: id, funcao: "CADASTRO" } }),
     db.participante.groupBy({ by: ["categoriaId", "status"], where: { eventoId: id }, _count: true }),
     estadoAoVivo(id),
     db.ocorrencia.findMany({ where: { eventoId: id }, orderBy: { criadoEm: "desc" }, take: 20 }),
@@ -33,6 +34,7 @@ export const GET = rota(async (_req: Request, ctx: RouteContext<"/api/org/evento
     categorias: porCategoria,
     quesitos,
     jurados,
+    cadastradores,
     aoVivo: ao,
     ocorrencias,
   });

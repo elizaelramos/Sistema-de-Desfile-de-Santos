@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { estadoAoVivo, filaDaCategoria, primeiroNome, proximoNumero } from "./desfile";
+import { estadoAoVivo, filaDaCategoria, primeiroNome } from "./desfile";
 
 type AoVivo = Awaited<ReturnType<typeof estadoAoVivo>>;
 type P = { numero: number; nome: string; idade: number; santo: string } | null;
@@ -25,12 +25,8 @@ function podio(ao: AoVivo, nome: (n: string) => string) {
 }
 
 export async function painelCadastro(eventoId: string) {
-  const [numero, categorias] = await Promise.all([
-    proximoNumero(eventoId),
-    db.categoria.findMany({ where: { eventoId }, orderBy: { ordem: "asc" } }),
-  ]);
+  const categorias = await db.categoria.findMany({ where: { eventoId }, orderBy: { ordem: "asc" } });
   return {
-    proximoNumero: numero,
     categorias: categorias.map((c) => ({
       id: c.id,
       nome: c.nome,

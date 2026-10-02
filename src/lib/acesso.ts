@@ -9,6 +9,13 @@ export const NOME_FUNCAO: Record<Funcao, string> = {
   JURADO: "Jurado",
 };
 
+/** Nome exibido no QR Code e no topo da tela da função. */
+export function tituloAcesso(acesso: { funcao: Funcao; numero: number }) {
+  if (acesso.funcao === "JURADO") return `Jurado ${acesso.numero}`;
+  if (acesso.funcao === "CADASTRO") return `Cadastro ${acesso.numero}`;
+  return NOME_FUNCAO[acesso.funcao];
+}
+
 /** Considera conectado quem fez uma requisição nos últimos 30 s. */
 export const JANELA_CONEXAO_MS = 30_000;
 

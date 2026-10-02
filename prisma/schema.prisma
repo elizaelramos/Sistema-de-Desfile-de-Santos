@@ -33,6 +33,12 @@ enum Funcao {
   JURADO
 }
 
+// SUPER_ADMIN cria e gerencia coordenadores; todos podem criar os próprios eventos.
+enum Papel {
+  SUPER_ADMIN
+  ORGANIZADOR
+}
+
 enum StatusParticipante {
   AGUARDANDO
   PRESENTE
@@ -45,6 +51,8 @@ model Organizador {
   nome      String
   email     String   @unique
   senhaHash String
+  papel     Papel    @default(ORGANIZADOR)
+  ativo     Boolean  @default(true)
   criadoEm  DateTime @default(now())
 
   eventos Evento[]
@@ -125,13 +133,15 @@ model Jurado {
   @@unique([eventoId, numero])
 }
 
-// Um acesso por função (Cadastro, Fila, Locutor) e um por jurado.
+// Um acesso para Fila e Locutor, um por cadastrador e um por jurado.
+// `numero` distingue os cadastradores (e repete o número do jurado).
 // Regenerar o QR troca o token, o que invalida o anterior.
 model Acesso {
   id       String  @id @default(cuid())
   eventoId String
   evento   Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
   funcao   Funcao
+  numero   Int     @default(1)
   juradoId String? @unique
   jurado   Jurado? @relation(fields: [juradoId], references: [id], onDelete: Cascade)
   token    String  @unique
@@ -139,7 +149,7 @@ model Acesso {
 
   sessoes Sessao[]
 
-  @@index([eventoId, funcao])
+  @@unique([eventoId, funcao, numero])
 }
 
 model Sessao {
