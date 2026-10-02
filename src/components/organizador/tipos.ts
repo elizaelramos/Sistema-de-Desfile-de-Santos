@@ -33,6 +33,7 @@ export type DadosPainel = {
   }[];
   quesitos: { id: string; nome: string; ordem: number }[];
   jurados: { id: string; numero: number; nome: string | null }[];
+  cadastradores: number;
   aoVivo: {
     categoriaAtual: { id: string; nome: string } | null;
     participanteAtual: ParticipanteResumo | null;

@@ -4,7 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/cliente";
 
-export function Cabecalho({ titulo, voltar }: { titulo: string; voltar?: string }) {
+export function Cabecalho({
+  titulo,
+  voltar,
+  superAdmin,
+}: {
+  titulo: string;
+  voltar?: string;
+  superAdmin?: boolean;
+}) {
   const router = useRouter();
   async function sair() {
     await api("/api/auth/logout", { body: {} });
@@ -19,6 +27,11 @@ export function Cabecalho({ titulo, voltar }: { titulo: string; voltar?: string 
           </Link>
         )}
         <h1 className="flex-1 truncate font-semibold">{titulo}</h1>
+        {superAdmin && (
+          <Link href="/painel/usuarios" className="text-sm text-marca-100 hover:text-white">
+            Coordenadores
+          </Link>
+        )}
         <button onClick={sair} className="text-sm text-marca-100 hover:text-white">
           Sair
         </button>

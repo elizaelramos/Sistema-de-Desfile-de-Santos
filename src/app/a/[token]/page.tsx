@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ErroApp } from "@/lib/api";
-import { NOME_FUNCAO, validarAcesso } from "@/lib/acesso";
+import { tituloAcesso, validarAcesso } from "@/lib/acesso";
 import { TelaFuncao } from "@/components/funcoes/tela-funcao";
 
 export const metadata: Metadata = { robots: { index: false } };
@@ -27,6 +27,6 @@ export default async function PaginaFuncao(props: PageProps<"/a/[token]">) {
       </main>
     );
 
-  const titulo = acesso.jurado ? `Jurado ${acesso.jurado.numero}` : NOME_FUNCAO[acesso.funcao];
+  const titulo = tituloAcesso(acesso);
   return <TelaFuncao token={token} funcao={acesso.funcao} titulo={titulo} evento={acesso.evento.nome} />;
 }

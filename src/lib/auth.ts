@@ -31,15 +31,21 @@ export async function organizadorAtual() {
   if (!token) return null;
   const sessao = await db.sessaoOrganizador.findUnique({
     where: { token },
-    include: { organizador: { select: { id: true, nome: true, email: true } } },
+    include: { organizador: { select: { id: true, nome: true, email: true, papel: true, ativo: true } } },
   });
-  if (!sessao || sessao.expiraEm < new Date()) return null;
+  if (!sessao || sessao.expiraEm < new Date() || !sessao.organizador.ativo) return null;
   return sessao.organizador;
 }
 
 export async function exigirOrganizador() {
   const org = await organizadorAtual();
   if (!org) throw new ErroApp("Não autenticado", 401);
+  return org;
+}
+
+export async function exigirSuperAdmin() {
+  const org = await exigirOrganizador();
+  if (org.papel !== "SUPER_ADMIN") throw new ErroApp("Acesso restrito ao super admin", 403);
   return org;
 }
 

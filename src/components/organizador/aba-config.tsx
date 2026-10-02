@@ -55,6 +55,7 @@ function DadosERegras({ dados, recarregar }: SecaoProps) {
           desempateIdade: f.get("desempateIdade"),
           exibirPrimeiroNome: f.get("exibirPrimeiroNome") === "sim",
           jurados: Number(f.get("jurados")),
+          cadastradores: Number(f.get("cadastradores")),
         },
       }),
     );
@@ -73,7 +74,16 @@ function DadosERegras({ dados, recarregar }: SecaoProps) {
           <Campo rotulo="Data" name="data" type="date" defaultValue={dataParaInput(evento.data)} required />
           <Campo rotulo="Local" name="local" defaultValue={evento.local} className="sm:col-span-2" />
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo
+            rotulo="Número de cadastradores"
+            name="cadastradores"
+            type="number"
+            min={1}
+            max={20}
+            defaultValue={dados.cadastradores}
+            required
+          />
           <Campo
             rotulo="Número de jurados"
             name="jurados"
@@ -83,6 +93,8 @@ function DadosERegras({ dados, recarregar }: SecaoProps) {
             defaultValue={dados.jurados.length}
             required
           />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium text-zinc-700">Desempate por idade</span>
             <select
@@ -300,7 +312,8 @@ function Duplicar({ dados }: { dados: DadosPainel }) {
     <Cartao>
       <h2 className="font-semibold">Duplicar evento</h2>
       <p className="mb-3 text-sm text-zinc-500">
-        Cria um novo evento com as mesmas categorias, quesitos, número de jurados e regras (sem participantes).
+        Cria um novo evento com as mesmas categorias, quesitos, número de cadastradores e jurados e regras (sem
+        participantes).
       </p>
       {aberto ? (
         <FormNovoEvento

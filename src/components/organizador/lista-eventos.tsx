@@ -19,7 +19,7 @@ type Evento = {
   _count: { participantes: number };
 };
 
-export function ListaEventos({ nomeOrganizador }: { nomeOrganizador: string }) {
+export function ListaEventos({ nomeOrganizador, superAdmin }: { nomeOrganizador: string; superAdmin: boolean }) {
   const router = useRouter();
   const [criando, setCriando] = useState(false);
   const { data: eventos, isLoading } = useQuery({
@@ -29,7 +29,7 @@ export function ListaEventos({ nomeOrganizador }: { nomeOrganizador: string }) {
 
   return (
     <>
-      <Cabecalho titulo={`Olá, ${nomeOrganizador}`} />
+      <Cabecalho titulo={`Olá, ${nomeOrganizador}`} superAdmin={superAdmin} />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Eventos</h2>

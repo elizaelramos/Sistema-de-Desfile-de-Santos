@@ -52,11 +52,6 @@ async function posicaoInicial(
   return categoria.status === "EM_ANDAMENTO" ? fimDaFila(tx, categoria.id) : numero;
 }
 
-export async function proximoNumero(eventoId: string) {
-  const r = await db.participante.aggregate({ where: { eventoId }, _max: { numero: true } });
-  return (r._max.numero ?? 0) + 1;
-}
-
 export type DadosParticipante = { numero: number; nome: string; idade: number; santo: string };
 
 export async function cadastrarParticipante(eventoId: string, dados: DadosParticipante) {

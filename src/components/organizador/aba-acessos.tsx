@@ -41,7 +41,7 @@ export function AbaAcessos({ eventoId }: { eventoId: string }) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2 print:hidden">
         <p className="text-sm text-zinc-600">
-          Cada função tem seu QR Code; cada jurado tem o seu, individual. Quem trocar de aparelho escaneia o mesmo QR.
+          Cada função tem seu QR Code; cada cadastrador e cada jurado tem o seu, individual. Quem trocar de aparelho escaneia o mesmo QR.
         </p>
         <Botao variante="secundario" onClick={() => window.print()}>
           Imprimir

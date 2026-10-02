@@ -6,7 +6,7 @@ import type { DesempateIdade, Prisma } from "@/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
 
-const FUNCOES_FIXAS = ["CADASTRO", "FILA", "LOCUTOR"] as const;
+const FUNCOES_FIXAS = ["FILA", "LOCUTOR"] as const;
 
 export type DadosNovoEvento = { nome: string; data: Date; local: string };
 
@@ -26,17 +26,19 @@ export async function criarEvento(organizadorId: string, dados: DadosNovoEvento)
     });
     await criarAcessosFixos(tx, evento.id);
     await tx.estadoDesfile.create({ data: { eventoId: evento.id } });
+    await sincronizarCadastradores(tx, evento.id, 1);
     await sincronizarJurados(tx, evento.id, 3);
     return evento;
   });
 }
 
-/** Copia categorias, quesitos, jurados e regras para um novo evento. */
+/** Copia categorias, quesitos, cadastradores, jurados e regras para um novo evento. */
 export async function duplicarEvento(eventoId: string, dados: DadosNovoEvento) {
   const origem = await db.evento.findUniqueOrThrow({
     where: { id: eventoId },
     include: { categorias: true, quesitos: true, jurados: true },
   });
+  const cadastradores = await db.acesso.count({ where: { eventoId, funcao: "CADASTRO" } });
   return db.$transaction(async (tx) => {
     const evento = await tx.evento.create({
       data: {
@@ -61,6 +63,7 @@ export async function duplicarEvento(eventoId: string, dados: DadosNovoEvento) {
     });
     await criarAcessosFixos(tx, evento.id);
     await tx.estadoDesfile.create({ data: { eventoId: evento.id } });
+    await sincronizarCadastradores(tx, evento.id, Math.max(cadastradores, 1));
     await sincronizarJurados(tx, evento.id, origem.jurados.length);
     return evento;
   });
@@ -77,7 +80,7 @@ export async function sincronizarJurados(tx: Tx, eventoId: string, quantidade: n
   for (let numero = jurados.length + 1; numero <= quantidade; numero++) {
     const jurado = await tx.jurado.create({ data: { eventoId, numero } });
     await tx.acesso.create({
-      data: { eventoId, funcao: "JURADO", juradoId: jurado.id, token: gerarToken() },
+      data: { eventoId, funcao: "JURADO", numero, juradoId: jurado.id, token: gerarToken() },
     });
   }
 
@@ -86,6 +89,15 @@ export async function sincronizarJurados(tx: Tx, eventoId: string, quantidade: n
     throw new ErroApp("Não é possível remover jurados que já deram notas");
   if (excedentes.length)
     await tx.jurado.deleteMany({ where: { id: { in: excedentes.map((j) => j.id) } } });
+}
+
+/** Ajusta a quantidade de cadastradores; cada um recebe um QR Code individual. */
+export async function sincronizarCadastradores(tx: Tx, eventoId: string, quantidade: number) {
+  const atuais = await tx.acesso.count({ where: { eventoId, funcao: "CADASTRO" } });
+  for (let numero = atuais + 1; numero <= quantidade; numero++)
+    await tx.acesso.create({ data: { eventoId, funcao: "CADASTRO", numero, token: gerarToken() } });
+  // Os participantes não ficam presos ao cadastrador, então removê-los é sempre seguro.
+  await tx.acesso.deleteMany({ where: { eventoId, funcao: "CADASTRO", numero: { gt: quantidade } } });
 }
 
 export async function atualizarEvento(
@@ -97,11 +109,13 @@ export async function atualizarEvento(
     desempateIdade: DesempateIdade;
     exibirPrimeiroNome: boolean;
     jurados: number;
+    cadastradores: number;
   },
 ) {
-  const { jurados, ...campos } = dados;
+  const { jurados, cadastradores, ...campos } = dados;
   await db.$transaction(async (tx) => {
     await tx.evento.update({ where: { id: eventoId }, data: campos });
+    await sincronizarCadastradores(tx, eventoId, cadastradores);
     await sincronizarJurados(tx, eventoId, jurados);
   });
 }

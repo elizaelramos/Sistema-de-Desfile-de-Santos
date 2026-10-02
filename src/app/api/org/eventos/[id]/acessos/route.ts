@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { json, rota } from "@/lib/api";
 import { exigirEventoDoOrganizador } from "@/lib/auth";
-import { JANELA_CONEXAO_MS, NOME_FUNCAO } from "@/lib/acesso";
+import { JANELA_CONEXAO_MS, tituloAcesso } from "@/lib/acesso";
 import { regenerarAcesso } from "@/lib/eventos";
 import { urlBase } from "@/lib/url";
 
@@ -23,13 +23,10 @@ export const GET = rota(async (request: Request, ctx: RouteContext<"/api/org/eve
   const acessos = await db.acesso.findMany({
     where: { eventoId: id },
     include: {
-      jurado: true,
       sessoes: { orderBy: { ultimoAcesso: "desc" } },
     },
   });
-  acessos.sort(
-    (a, b) => ORDEM[a.funcao] - ORDEM[b.funcao] || (a.jurado?.numero ?? 0) - (b.jurado?.numero ?? 0),
-  );
+  acessos.sort((a, b) => ORDEM[a.funcao] - ORDEM[b.funcao] || a.numero - b.numero);
 
   const urlPublica = `${base}/p/${evento.slugPublico}`;
   return json({
@@ -40,7 +37,7 @@ export const GET = rota(async (request: Request, ctx: RouteContext<"/api/org/eve
         return {
           id: a.id,
           funcao: a.funcao,
-          titulo: a.jurado ? `Jurado ${a.jurado.numero}` : NOME_FUNCAO[a.funcao],
+          titulo: tituloAcesso(a),
           url,
           qr: await qr(url),
           sessoes: a.sessoes.map((s) => ({
