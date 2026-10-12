@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { estadoAoVivo, filaDaCategoria, primeiroNome } from "./desfile";
+import { estadoAoVivo, filaDaCategoria, podioDaCategoria, primeiroNome } from "./desfile";
 
 type AoVivo = Awaited<ReturnType<typeof estadoAoVivo>>;
 type P = { numero: number; nome: string; idade: number; santo: string } | null;
@@ -7,19 +7,20 @@ type P = { numero: number; nome: string; idade: number; santo: string } | null;
 const dadosParticipante = (p: P) =>
   p && { numero: p.numero, nome: p.nome, idade: p.idade, santo: p.santo };
 
-/** O pódio aparece depois da revelação, até o próximo participante ser liberado. */
-function podio(ao: AoVivo, nome: (n: string) => string) {
-  const r = ao.ultimaRevelada;
-  if (!r?.reveladaEm) return null;
-  const desfilouEm = ao.participanteAtual?.desfilouEm;
-  if (desfilouEm && desfilouEm > r.reveladaEm) return null;
+/**
+ * Tela de premiação do telão: só leva nome, número e santo das posições que o
+ * locutor já revelou, para não vazar o resultado antes da hora.
+ */
+function premiacaoPublica(ao: AoVivo, nome: (n: string) => string) {
+  const p = ao.premiacao;
+  if (!p) return null;
   return {
-    categoria: r.nome,
-    itens: r.resultados.map((x) => ({
-      posicao: x.posicao,
-      numero: x.participante.numero,
-      nome: nome(x.participante.nome),
-      santo: x.participante.santo,
+    categoria: p.categoria.nome,
+    itens: p.resultados.map((r) => ({
+      posicao: r.posicao,
+      revelado: p.reveladas.includes(r.posicao)
+        ? { numero: r.participante.numero, nome: nome(r.participante.nome), santo: r.participante.santo }
+        : null,
     })),
   };
 }
@@ -57,11 +58,31 @@ export async function painelFila(eventoId: string) {
 
 export async function painelLocutor(eventoId: string) {
   const ao = await estadoAoVivo(eventoId);
+  // Resultados liberados pelo coordenador; o locutor conduz a premiação de cada um.
+  const liberadas = await db.categoria.findMany({
+    where: { eventoId, status: "REVELADA" },
+    orderBy: { ordem: "asc" },
+  });
+  const premiacoes = await Promise.all(
+    liberadas.map(async (c) => {
+      const noTelao = ao.premiacao?.categoria.id === c.id;
+      return {
+        categoriaId: c.id,
+        categoria: c.nome,
+        noTelao,
+        itens: (await podioDaCategoria(c.id)).map((r) => ({
+          posicao: r.posicao,
+          ...dadosParticipante(r.participante)!,
+          revelado: noTelao && ao.premiacao!.reveladas.includes(r.posicao),
+        })),
+      };
+    }),
+  );
   return {
     categoria: ao.categoriaAtual?.nome ?? null,
     atual: dadosParticipante(ao.participanteAtual),
     proximo: dadosParticipante(ao.proximo),
-    podio: podio(ao, (n) => n),
+    premiacoes,
   };
 }
 
@@ -117,8 +138,27 @@ export async function painelPublico(slug: string) {
     evento: { nome: evento.nome, local: evento.local, encerrado: evento.status === "ENCERRADO" },
     categoria: ao.categoriaAtual?.nome ?? null,
     atual: atual && { numero: atual.numero, nome: nome(atual.nome), santo: atual.santo },
-    podio: podio(ao, nome),
+    premiacao: premiacaoPublica(ao, nome),
   };
+}
+
+// Cache em memória: com centenas de celulares consultando o telão,
+// o banco recebe no máximo uma consulta a cada 2 s por evento.
+const TTL_MS = 2000;
+const cachePublico = new Map<string, { expira: number; dados: PainelPublico | null }>();
+
+export async function painelPublicoEmCache(slug: string) {
+  let item = cachePublico.get(slug);
+  if (!item || item.expira < Date.now()) {
+    item = { expira: Date.now() + TTL_MS, dados: await painelPublico(slug) };
+    cachePublico.set(slug, item);
+  }
+  return item.dados;
+}
+
+/** Descarta o cache para o telão refletir na hora uma ação do locutor. */
+export function invalidarPainelPublico(slug: string) {
+  cachePublico.delete(slug);
 }
 
 export type PainelCadastro = Awaited<ReturnType<typeof painelCadastro>>;

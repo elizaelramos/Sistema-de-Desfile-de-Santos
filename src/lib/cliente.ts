@@ -1,6 +1,7 @@
 /** Intervalos de polling (escopo, seção 2). */
 export const POLL_INTERNO_MS = 2500;
 export const POLL_PUBLICO_MS = 5000;
+export const POLL_PREMIACAO_MS = 1500;
 
 type Opcoes = { method?: string; body?: unknown; sessao?: string | null };
 

@@ -107,11 +107,11 @@ Regras de acesso:
 ### 5.5 Organizador — andamento
 - Abrir categoria → acompanhar → **Fechar categoria**.
 - Como a fila só avança com todas as notas confirmadas, toda categoria fechada está completamente avaliada.
-- Após fechar: ranking calculado e botão **Revelar resultado** (telão e locutor ao mesmo tempo).
+- Após fechar: ranking calculado e botão **Enviar resultado ao Locutor** (o pódio aparece só para o locutor; o telão não mostra nada).
 
 ### 5.6 Telão / página pública
 - Durante o desfile: participante atual e categoria. **Notas ocultas.**
-- Após a revelação: **pódio** (1º, 2º e 3º) da categoria.
+- Na premiação: o locutor clica em **Iniciar premiação da categoria** (telão mostra a premiação com nomes ocultos) e em **Revelar** em cada posição (1º, 2º ou 3º, na ordem que quiser); o telão mostra só o que foi revelado.
 - Mesma página para a TV do evento e para o celular do público (link ou QR divulgado no local).
 - Leve e com cache, para aguentar centenas de acessos simultâneos.
 

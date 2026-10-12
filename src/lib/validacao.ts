@@ -89,3 +89,9 @@ export const esquemaNotas = z.object({
   participanteId: z.string(),
   notas: z.array(z.object({ quesitoId: z.string(), valor: z.number().int().min(1).max(10) })),
 });
+
+export const esquemaAcaoPremiacao = z.discriminatedUnion("acao", [
+  z.object({ acao: z.literal("iniciar"), categoriaId: z.string() }),
+  z.object({ acao: z.literal("revelar"), categoriaId: z.string(), posicao: z.number().int().min(1).max(3) }),
+  z.object({ acao: z.literal("encerrar") }),
+]);
