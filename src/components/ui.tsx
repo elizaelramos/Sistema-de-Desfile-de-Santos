@@ -81,7 +81,7 @@ const NOME_STATUS: Record<string, string> = {
   DESFILOU: "Desfilou",
   EM_ANDAMENTO: "Em andamento",
   FECHADA: "Fechada",
-  REVELADA: "Revelada",
+  REVELADA: "Com o Locutor",
 };
 
 export function Selo({ status }: { status: string }) {

@@ -200,11 +200,14 @@ model Nota {
 }
 
 model EstadoDesfile {
-  eventoId            String   @id
-  evento              Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
-  categoriaAtualId    String?
-  participanteAtualId String?
-  atualizadoEm        DateTime @updatedAt
+  eventoId             String   @id
+  evento               Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  categoriaAtualId     String?
+  participanteAtualId  String?
+  // Categoria em premiação no telão e posições do pódio já reveladas pelo locutor (ex.: "3,1").
+  premiacaoCategoriaId String?
+  premiacaoReveladas   String   @default("")
+  atualizadoEm         DateTime @updatedAt
 }
 
 model Resultado {

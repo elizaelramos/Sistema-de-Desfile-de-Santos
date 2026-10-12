@@ -159,13 +159,9 @@ export function AbaAndamento({ dados, atualizar }: Props) {
                   Fechar categoria
                 </Botao>
               )}
-              {!encerrado && (c.status === "FECHADA" || c.status === "REVELADA") && (
-                <Botao
-                  variante={c.status === "FECHADA" ? "sucesso" : "secundario"}
-                  disabled={ocupado}
-                  onClick={() => acaoCategoria(c.id, "revelar")}
-                >
-                  {c.status === "FECHADA" ? "Revelar resultado" : "Mostrar pódio de novo"}
+              {!encerrado && c.status === "FECHADA" && (
+                <Botao variante="sucesso" disabled={ocupado} onClick={() => acaoCategoria(c.id, "revelar")}>
+                  Enviar resultado ao Locutor
                 </Botao>
               )}
             </li>

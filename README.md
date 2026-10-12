@@ -34,7 +34,7 @@ GRANT ALL ON desfile.* TO 'desfile'@'localhost';
 | `/a/<token>` | Cada Cadastrador, Fila, Locutor e cada Jurado — link do QR Code + nome |
 | `/p/<slug>` | Telão / público (sem login) |
 
-- **Painel do evento** — abas *Andamento* (abrir/fechar/revelar categorias, jurados pendentes, liberação manual),
+- **Painel do evento** — abas *Andamento* (abrir/fechar categorias, enviar resultado ao Locutor, jurados pendentes, liberação manual),
   *Configuração* (dados, regras, quesitos, categorias, duplicar, encerrar), *QR Codes* (imprimir, ver quem está
   conectado, regenerar) e *Resultados* (ranking completo com médias por quesito e critério de desempate).
 - **Trava de avaliação** — a fila só libera o próximo participante quando todos os jurados confirmaram as notas do
@@ -43,8 +43,12 @@ GRANT ALL ON desfile.* TO 'desfile'@'localhost';
 - **Apuração** — ao fechar a categoria: média de todas as notas; desempate pela média do 1º quesito, 2º, …; depois
   idade (configurável); por último sorteio automático registrado com data e hora. Ausentes que não desfilaram ficam
   fora. Lógica em [src/lib/apuracao.ts](src/lib/apuracao.ts).
-- **Telão** — mostra o participante atual (sem notas) e, após *Revelar resultado*, o pódio da categoria até o
-  próximo participante ser liberado. A API pública tem cache de 2 s em memória, e o Nginx pode fazer micro-cache.
+- **Premiação** — ao fechar, o coordenador clica em *Enviar resultado ao Locutor*: o pódio aparece só na tela do
+  Locutor. O Locutor clica em *Iniciar premiação da categoria* (o telão mostra a premiação com os nomes ocultos) e em
+  *Revelar* em cada posição, na ordem que quiser; só o que foi revelado aparece no telão. Abrir a próxima categoria
+  (ou *Encerrar premiação*) tira a premiação do telão.
+- **Telão** — mostra o participante atual (sem notas) ou a premiação conduzida pelo Locutor. A API pública tem cache
+  de 2 s em memória (descartado a cada ação do Locutor), e o Nginx pode fazer micro-cache.
 - **QR Codes** — token aleatório de 256 bits por função e por jurado. Regenerar invalida o anterior; encerrar o
   evento desativa todos.
 
@@ -52,7 +56,7 @@ Estrutura principal:
 
 ```
 prisma/schema.prisma        modelo de dados
-src/lib/desfile.ts          regras do dia: cadastro, fila, trava, abrir/fechar/revelar, notas
+src/lib/desfile.ts          regras do dia: cadastro, fila, trava, abrir/fechar/liberar resultado, premiação, notas
 src/lib/eventos.ts          configuração: criar, duplicar, jurados, categorias, quesitos, QR
 src/lib/paineis.ts          dados de cada tela (fila, locutor, jurado, público)
 src/app/api/                rotas: org/ (organizador), r/[token]/ (funções), publico/

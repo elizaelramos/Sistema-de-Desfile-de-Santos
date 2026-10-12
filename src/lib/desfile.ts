@@ -176,19 +176,32 @@ export async function estadoAoVivo(eventoId: string) {
     ? await juradosPendentes(db, eventoId, participanteAtual.id)
     : [];
 
-  const ultimaRevelada = await db.categoria.findFirst({
-    where: { eventoId, status: "REVELADA" },
-    orderBy: { reveladaEm: "desc" },
-    include: {
-      resultados: {
-        where: { posicao: { lte: 3 } },
-        orderBy: { posicao: "asc" },
-        include: { participante: true },
-      },
-    },
-  });
+  const premiacao = await premiacaoAtual(estado);
 
-  return { categoriaAtual, participanteAtual, proximo, pendentes, ultimaRevelada };
+  return { categoriaAtual, participanteAtual, proximo, pendentes, premiacao };
+}
+
+/** Pódio (até 3 posições) de uma categoria cujo resultado já foi liberado. */
+export async function podioDaCategoria(categoriaId: string) {
+  return db.resultado.findMany({
+    where: { categoriaId, posicao: { lte: 3 } },
+    orderBy: { posicao: "asc" },
+    include: { participante: true },
+  });
+}
+
+const lerReveladas = (s: string) => s.split(",").filter(Boolean).map(Number);
+
+/** Categoria em premiação no telão e quais posições o locutor já revelou. */
+async function premiacaoAtual(estado: { premiacaoCategoriaId: string | null; premiacaoReveladas: string }) {
+  if (!estado.premiacaoCategoriaId) return null;
+  const categoria = await db.categoria.findUnique({ where: { id: estado.premiacaoCategoriaId } });
+  if (!categoria) return null;
+  return {
+    categoria,
+    resultados: await podioDaCategoria(categoria.id),
+    reveladas: lerReveladas(estado.premiacaoReveladas),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -285,7 +298,8 @@ export async function abrirCategoria(eventoId: string, categoriaId: string) {
     await tx.categoria.update({ where: { id: cat.id }, data: { status: "EM_ANDAMENTO" } });
     await tx.estadoDesfile.update({
       where: { eventoId },
-      data: { categoriaAtualId: cat.id, participanteAtualId: null },
+      // Abrir a próxima categoria tira a premiação anterior do telão.
+      data: { categoriaAtualId: cat.id, participanteAtualId: null, premiacaoCategoriaId: null, premiacaoReveladas: "" },
     });
   });
 }
@@ -363,15 +377,62 @@ export async function fecharCategoria(
   });
 }
 
+/**
+ * Libera o resultado para o locutor. Nada aparece no telão até o locutor
+ * iniciar a premiação e revelar cada posição.
+ */
 export async function revelarCategoria(eventoId: string, categoriaId: string) {
   const cat = await db.categoria.findFirst({ where: { id: categoriaId, eventoId } });
   if (!cat) throw new ErroApp("Categoria não encontrada", 404);
-  if (cat.status !== "FECHADA" && cat.status !== "REVELADA")
-    throw new ErroApp("Feche a categoria antes de revelar");
-  // Revelar de novo reexibe o pódio no telão.
+  if (cat.status === "REVELADA") return;
+  if (cat.status !== "FECHADA") throw new ErroApp("Feche a categoria antes de liberar o resultado");
   await db.categoria.update({
     where: { id: cat.id },
     data: { status: "REVELADA", reveladaEm: new Date() },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Premiação (locutor)
+// ---------------------------------------------------------------------------
+
+/** Mostra a tela de premiação da categoria no telão, com todas as posições ocultas. */
+export async function iniciarPremiacao(eventoId: string, categoriaId: string) {
+  const cat = await db.categoria.findFirst({ where: { id: categoriaId, eventoId } });
+  if (!cat) throw new ErroApp("Categoria não encontrada", 404);
+  if (cat.status !== "REVELADA") throw new ErroApp("O coordenador ainda não liberou este resultado");
+  await obterEstado(db, eventoId);
+  await db.estadoDesfile.update({
+    where: { eventoId },
+    data: { premiacaoCategoriaId: cat.id, premiacaoReveladas: "" },
+  });
+}
+
+/** Revela uma posição do pódio no telão. */
+export async function revelarPosicao(eventoId: string, categoriaId: string, posicao: number) {
+  return db.$transaction(async (tx) => {
+    const estado = await travarEstado(tx, eventoId);
+    if (estado.premiacaoCategoriaId !== categoriaId)
+      throw new ErroApp("Inicie a premiação desta categoria antes de revelar");
+    const existe = await tx.resultado.findFirst({
+      where: { categoriaId: estado.premiacaoCategoriaId, posicao },
+    });
+    if (!existe) throw new ErroApp(`Não há ${posicao}º lugar nesta categoria`);
+    const reveladas = lerReveladas(estado.premiacaoReveladas);
+    if (reveladas.includes(posicao)) return;
+    await tx.estadoDesfile.update({
+      where: { eventoId },
+      data: { premiacaoReveladas: [...reveladas, posicao].join(",") },
+    });
+  });
+}
+
+/** Tira a premiação do telão, que volta a mostrar o desfile. */
+export async function encerrarPremiacao(eventoId: string) {
+  await obterEstado(db, eventoId);
+  await db.estadoDesfile.update({
+    where: { eventoId },
+    data: { premiacaoCategoriaId: null, premiacaoReveladas: "" },
   });
 }
 
